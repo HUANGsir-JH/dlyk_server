@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.huang.dlyk_server.mapper.TActivityMapper">
+  <resultMap id="BaseResultMap" type="org.huang.dlyk_server.model.TActivity">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="owner_id" jdbcType="INTEGER" property="ownerId" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="start_time" jdbcType="TIMESTAMP" property="startTime" />
+    <result column="end_time" jdbcType="TIMESTAMP" property="endTime" />
+    <result column="cost" jdbcType="DECIMAL" property="cost" />
+    <result column="description" jdbcType="VARCHAR" property="description" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="create_by" jdbcType="INTEGER" property="createBy" />
+    <result column="edit_time" jdbcType="TIMESTAMP" property="editTime" />
+    <result column="edit_by" jdbcType="INTEGER" property="editBy" />
+  </resultMap>
+
+  <resultMap id="ActivityResultMap" type="org.huang.dlyk_server.model.TActivity">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="owner_id" jdbcType="INTEGER" property="ownerId" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="start_time" jdbcType="TIMESTAMP" property="startTime" />
+    <result column="end_time" jdbcType="TIMESTAMP" property="endTime" />
+    <result column="cost" jdbcType="DECIMAL" property="cost" />
+    <result column="description" jdbcType="VARCHAR" property="description" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="create_by" jdbcType="INTEGER" property="createBy" />
+    <result column="edit_time" jdbcType="TIMESTAMP" property="editTime" />
+    <result column="edit_by" jdbcType="INTEGER" property="editBy" />
+    <association property="owner" javaType="org.huang.dlyk_server.model.TUser" >
+      <id column="owner_id" jdbcType="INTEGER" property="id" />
+      <result column="owner_name" jdbcType="VARCHAR" property="name" />
+    </association>
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, owner_id, `name`, start_time, end_time, cost, description, create_time, create_by, 
+    edit_time, edit_by
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from t_activity
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+
+    <select id="selectActivityByPage" resultMap="ActivityResultMap">
+      select
+      ta.* ,tu.id as owner_id, tu.name as owner_name
+      from t_activity as ta left join t_user as tu on ta.owner_id = tu.id
+      <where>
+        ${param1.filterSql}
+        <if test="param2.ownerId != null">
+          and ta.owner_id = #{param2.ownerId,jdbcType=INTEGER}
+        </if>
+        <if test="param2.activityName != null">
+            and ta.`name` like concat('%',#{param2.activityName,jdbcType=VARCHAR},'%')
+        </if>
+        <if test="param2.beginTime != null">
+            and ta.start_time &gt;= #{param2.beginTime,jdbcType=TIMESTAMP}
+        </if>
+        <if test="param2.endTime != null">
+            and ta.end_time &lt;= #{param2.endTime,jdbcType=TIMESTAMP}
+        </if>
+        <if test="param2.costBegin != null and param2.costEnd != null">
+            and ta.cost between #{param2.costBegin,jdbcType=DECIMAL} and
+          #{param2.costEnd,jdbcType=DECIMAL}
+        </if>
+        <if test="param2.createTime != null">
+            and ta.create_time &gt;= #{param2.createTime,jdbcType=TIMESTAMP}
+        </if>
+      </where>
+      order by ta.create_time desc
+    </select>
+    <select id="selectActivityList" resultType="org.huang.dlyk_server.query.ActivityListQuery">
+      select
+          ta.id , ta.name
+          from t_activity as ta
+      <where>
+        ${filterSql}
+      </where>
+    </select>
+    <select id="countEffectiveActivity" resultType="java.lang.Integer">
+        select count(1)
+        from t_activity
+        where end_time &gt;= now() <!-- 结束时间大于等于当前时间 -->
+    </select>
+  <select id="countTotalActivity" resultType="java.lang.Integer">
+    select count(1)
+    from t_activity
+  </select>
+    <select id="countActivityByYear" resultType="org.huang.dlyk_server.query.ChartDataQuery">
+      WITH RECURSIVE months(month_num) AS (
+        SELECT 1
+        UNION ALL
+        SELECT month_num + 1 FROM months WHERE month_num &lt; 12
+      )
+      SELECT
+        CAST(m.month_num AS CHAR) as name,
+        CAST(COALESCE(COUNT(a.id), 0) AS CHAR) as value
+      FROM
+         months as m
+      LEFT JOIN
+        t_activity a ON MONTH(a.start_time) = m.month_num AND YEAR(a.start_time) = #{year,jdbcType=INTEGER}
+      GROUP BY
+        m.month_num
+      ORDER BY
+        m.month_num
+    </select>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from t_activity
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" keyColumn="id" keyProperty="id" parameterType="org.huang.dlyk_server.model.TActivity" useGeneratedKeys="true">
+    insert into t_activity (owner_id, `name`, start_time, 
+      end_time, cost, description, 
+      create_time, create_by, edit_time, 
+      edit_by)
+    values (#{ownerId,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR}, #{startTime,jdbcType=TIMESTAMP}, 
+      #{endTime,jdbcType=TIMESTAMP}, #{cost,jdbcType=DECIMAL}, #{description,jdbcType=VARCHAR}, 
+      #{createTime,jdbcType=TIMESTAMP}, #{createBy,jdbcType=INTEGER}, #{editTime,jdbcType=TIMESTAMP}, 
+      #{editBy,jdbcType=INTEGER})
+  </insert>
+  <insert id="insertSelective" keyColumn="id" keyProperty="id" parameterType="org.huang.dlyk_server.model.TActivity" useGeneratedKeys="true">
+    insert into t_activity
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="ownerId != null">
+        owner_id,
+      </if>
+      <if test="name != null">
+        `name`,
+      </if>
+      <if test="startTime != null">
+        start_time,
+      </if>
+      <if test="endTime != null">
+        end_time,
+      </if>
+      <if test="cost != null">
+        cost,
+      </if>
+      <if test="description != null">
+        description,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+      <if test="createBy != null">
+        create_by,
+      </if>
+      <if test="editTime != null">
+        edit_time,
+      </if>
+      <if test="editBy != null">
+        edit_by,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="ownerId != null">
+        #{ownerId,jdbcType=INTEGER},
+      </if>
+      <if test="name != null">
+        #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="startTime != null">
+        #{startTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="endTime != null">
+        #{endTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="cost != null">
+        #{cost,jdbcType=DECIMAL},
+      </if>
+      <if test="description != null">
+        #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createBy != null">
+        #{createBy,jdbcType=INTEGER},
+      </if>
+      <if test="editTime != null">
+        #{editTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="editBy != null">
+        #{editBy,jdbcType=INTEGER},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="org.huang.dlyk_server.model.TActivity">
+    update t_activity
+    <set>
+      <if test="ownerId != null">
+        owner_id = #{ownerId,jdbcType=INTEGER},
+      </if>
+      <if test="name != null">
+        `name` = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="startTime != null">
+        start_time = #{startTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="endTime != null">
+        end_time = #{endTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="cost != null">
+        cost = #{cost,jdbcType=DECIMAL},
+      </if>
+      <if test="description != null">
+        description = #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createBy != null">
+        create_by = #{createBy,jdbcType=INTEGER},
+      </if>
+      <if test="editTime != null">
+        edit_time = #{editTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="editBy != null">
+        edit_by = #{editBy,jdbcType=INTEGER},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="org.huang.dlyk_server.model.TActivity">
+    update t_activity
+    set owner_id = #{ownerId,jdbcType=INTEGER},
+      `name` = #{name,jdbcType=VARCHAR},
+      start_time = #{startTime,jdbcType=TIMESTAMP},
+      end_time = #{endTime,jdbcType=TIMESTAMP},
+      cost = #{cost,jdbcType=DECIMAL},
+      description = #{description,jdbcType=VARCHAR},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      create_by = #{createBy,jdbcType=INTEGER},
+      edit_time = #{editTime,jdbcType=TIMESTAMP},
+      edit_by = #{editBy,jdbcType=INTEGER}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

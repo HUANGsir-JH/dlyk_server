@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.huang.dlyk_server.mapper.TCustomerMapper">
+  <resultMap id="BaseResultMap" type="org.huang.dlyk_server.model.TCustomer">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="clue_id" jdbcType="INTEGER" property="clueId" />
+    <result column="product" jdbcType="INTEGER" property="product" />
+    <result column="description" jdbcType="VARCHAR" property="description" />
+    <result column="next_contact_time" jdbcType="TIMESTAMP" property="nextContactTime" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="create_by" jdbcType="INTEGER" property="createBy" />
+    <result column="edit_time" jdbcType="TIMESTAMP" property="editTime" />
+    <result column="edit_by" jdbcType="INTEGER" property="editBy" />
+  </resultMap>
+
+  <resultMap id="CustomerResultMap" type="org.huang.dlyk_server.model.TCustomer">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="clue_id" jdbcType="INTEGER" property="clueId" />
+    <result column="product" jdbcType="INTEGER" property="product" />
+    <result column="description" jdbcType="VARCHAR" property="description" />
+    <result column="next_contact_time" jdbcType="TIMESTAMP" property="nextContactTime" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="create_by" jdbcType="INTEGER" property="createBy" />
+    <result column="edit_time" jdbcType="TIMESTAMP" property="editTime" />
+    <result column="edit_by" jdbcType="INTEGER" property="editBy" />
+    <association property="clueDO" javaType="org.huang.dlyk_server.model.TClue">
+      <id column="clueId" jdbcType="INTEGER" property="id"/>
+      <result column="fullName" jdbcType="VARCHAR" property="fullName"/>
+      <result column="phone" jdbcType="VARCHAR" property="phone"/>
+      <result column="weixin" jdbcType="VARCHAR" property="weixin"/>
+      <result column="qq" jdbcType="VARCHAR" property="qq"/>
+      <result column="email" jdbcType="VARCHAR" property="email"/>
+      <result column="age" jdbcType="INTEGER" property="age"/>
+      <result column="job" jdbcType="VARCHAR" property="job"/>
+      <result column="yearIncome" jdbcType="DECIMAL" property="yearIncome"/>
+      <result column="address" jdbcType="VARCHAR" property="address"/>
+    </association>
+    <association property="ownerDO" javaType="org.huang.dlyk_server.model.TUser">
+      <id column="ownerId" property="id"/>
+      <result column="ownerName" property="name"/>
+    </association>
+    <association property="activityDO" javaType="org.huang.dlyk_server.model.TActivity">
+      <id column="activityId" property="id"/>
+      <result column="activityName" property="name"/>
+    </association>
+    <association property="appellationDO" javaType="org.huang.dlyk_server.model.TDicValue">
+      <id column="appellationId" property="id"/>
+      <result column="appellationName" property="typeValue"/>
+    </association>
+    <association property="intentionStateDO" javaType="org.huang.dlyk_server.model.TDicValue">
+      <id column="intentionStateId" property="id"/>
+      <result column="intentionStateName" property="typeValue"/>
+    </association>
+    <association property="intentionProductDO" javaType="org.huang.dlyk_server.model.TProduct">
+      <id column="intentionProductId" property="id"/>
+      <result column="intentionProductName" property="name"/>
+    </association>
+    <association property="needLoanDO" javaType="org.huang.dlyk_server.model.TDicValue">
+      <id column="needLoanId" property="id"/>
+      <result column="needLoanName" property="typeValue"/>
+    </association>
+    <association property="stateDO" javaType="org.huang.dlyk_server.model.TDicValue">
+      <id column="stateId" property="id"/>
+      <result column="stateName" property="typeValue"/>
+    </association>
+    <association property="sourceDO" javaType="org.huang.dlyk_server.model.TDicValue">
+      <id column="sourceId" property="id"/>
+      <result column="sourceName" property="typeValue"/>
+    </association>
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, clue_id, product, description, next_contact_time, create_time, create_by, edit_time, 
+    edit_by
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from t_customer
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+    <select id="selectCustomerByPage" resultMap="CustomerResultMap">
+        select
+            tct.*,
+            tc.id as clueId,tc.full_name as fullName,tc.phone as phone,tc.weixin as weixin,
+            tu.id as ownerId,tu.name as ownerName,
+            ta.id as activityId,ta.name as activityName,
+            tdv.id as appellationId,tdv.type_value as appellationName,
+            tdv2.id as needLoanId,tdv2.type_value as needLoanName,
+            tdv3.id as intentionStateId,tdv3.type_value as intentionStateName,
+            tdv4.id as stateId,tdv4.type_value as stateName,
+            tdv5.id as sourceId,tdv5.type_value as sourceName,
+            tp.id as intentionProductId,tp.name as intentionProductName
+            from t_customer tct left join t_clue as tc on tct.clue_id = tc.id
+                                left join t_user as tu on tc.owner_id = tu.id
+                                left join t_activity as ta on tc.activity_id = ta.id
+                                left join t_dic_value as tdv on tc.appellation = tdv.id
+                                left join t_dic_value as tdv2 on tc.need_loan = tdv2.id
+                                left join t_dic_value as tdv3 on tc.intention_state = tdv3.id
+                                left join t_dic_value as tdv4 on tc.state = tdv4.id
+                                left join t_dic_value as tdv5 on tc.source = tdv5.id
+                                left join t_product as tp on tct.product = tp.id
+        <where>
+          ${filterSql}
+        </where>
+    </select>
+  <select id="selectAllCustomers" resultType="org.huang.dlyk_server.result.CustomerExcel">
+    select
+        tu.name as ownerName,
+        ta.name as activityName,
+        tc.full_name as fullName,
+        tdv.type_value as appellationName,
+        tc.phone as phone, tc.weixin as weixin, tc.qq as qq,
+        tc.email as email, tc.age as age, tc.job as job,
+        tc.year_income as yearIncome, tc.address as address,
+        tdv2.type_value as needLoanName,
+        tp.name as productName,
+        tdv3.type_value as sourceName,
+        tct.description as description,
+        tct.next_contact_time as nextContactTime
+        from t_customer as tct left join t_clue as tc on tct.clue_id = tc.id
+                                left join t_user as tu on tc.owner_id = tu.id
+                                left join t_activity as ta on tc.activity_id = ta.id
+                                left join t_dic_value as tdv on tc.appellation = tdv.id
+                                left join t_dic_value as tdv2 on tc.need_loan = tdv2.id
+                                left join t_product as tp on tct.product = tp.id
+                                left join t_dic_value as tdv3 on tc.source = tdv3.id
+    <where>
+      ${filterSql}
+    </where>
+  </select>
+  <select id="selectSelectedCustomers" resultType="org.huang.dlyk_server.result.CustomerExcel">
+    select
+      tu.name as ownerName,
+      ta.name as activityName,
+      tc.full_name as fullName,
+      tdv.type_value as appellationName,
+      tc.phone as phone, tc.weixin as weixin, tc.qq as qq,
+      tc.email as email, tc.age as age, tc.job as job,
+      tc.year_income as yearIncome, tc.address as address,
+      tdv2.type_value as needLoanName,
+      tp.name as productName,
+      tdv3.type_value as sourceName,
+      tct.description as description,
+      tct.next_contact_time as nextContactTime
+    from t_customer as tct left join t_clue as tc on tct.clue_id = tc.id
+                           left join t_user as tu on tc.owner_id = tu.id
+                           left join t_activity as ta on tc.activity_id = ta.id
+                           left join t_dic_value as tdv on tc.appellation = tdv.id
+                           left join t_dic_value as tdv2 on tc.need_loan = tdv2.id
+                           left join t_product as tp on tct.product = tp.id
+                           left join t_dic_value as tdv3 on tc.source = tdv3.id
+    <where>
+      tct.id in
+        <foreach collection="ids" item="customerId" separator="," open="(" close=")">
+          #{customerId}
+        </foreach>
+    </where>
+  </select>
+    <select id="countCustomer" resultType="java.lang.Integer">
+    select count(1)
+    from t_customer
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from t_customer
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" keyColumn="id" keyProperty="id" parameterType="org.huang.dlyk_server.model.TCustomer" useGeneratedKeys="true">
+    insert into t_customer (clue_id, product, description, 
+      next_contact_time, create_time, create_by, 
+      edit_time, edit_by)
+    values (#{clueId,jdbcType=INTEGER}, #{product,jdbcType=INTEGER}, #{description,jdbcType=VARCHAR}, 
+      #{nextContactTime,jdbcType=TIMESTAMP}, #{createTime,jdbcType=TIMESTAMP}, #{createBy,jdbcType=INTEGER}, 
+      #{editTime,jdbcType=TIMESTAMP}, #{editBy,jdbcType=INTEGER})
+  </insert>
+  <insert id="insertSelective" keyColumn="id" keyProperty="id" parameterType="org.huang.dlyk_server.model.TCustomer" useGeneratedKeys="true">
+    insert into t_customer
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="clueId != null">
+        clue_id,
+      </if>
+      <if test="product != null">
+        product,
+      </if>
+      <if test="description != null">
+        description,
+      </if>
+      <if test="nextContactTime != null">
+        next_contact_time,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+      <if test="createBy != null">
+        create_by,
+      </if>
+      <if test="editTime != null">
+        edit_time,
+      </if>
+      <if test="editBy != null">
+        edit_by,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="clueId != null">
+        #{clueId,jdbcType=INTEGER},
+      </if>
+      <if test="product != null">
+        #{product,jdbcType=INTEGER},
+      </if>
+      <if test="description != null">
+        #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="nextContactTime != null">
+        #{nextContactTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createBy != null">
+        #{createBy,jdbcType=INTEGER},
+      </if>
+      <if test="editTime != null">
+        #{editTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="editBy != null">
+        #{editBy,jdbcType=INTEGER},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="org.huang.dlyk_server.model.TCustomer">
+    update t_customer
+    <set>
+      <if test="clueId != null">
+        clue_id = #{clueId,jdbcType=INTEGER},
+      </if>
+      <if test="product != null">
+        product = #{product,jdbcType=INTEGER},
+      </if>
+      <if test="description != null">
+        description = #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="nextContactTime != null">
+        next_contact_time = #{nextContactTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="createBy != null">
+        create_by = #{createBy,jdbcType=INTEGER},
+      </if>
+      <if test="editTime != null">
+        edit_time = #{editTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="editBy != null">
+        edit_by = #{editBy,jdbcType=INTEGER},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="org.huang.dlyk_server.model.TCustomer">
+    update t_customer
+    set clue_id = #{clueId,jdbcType=INTEGER},
+      product = #{product,jdbcType=INTEGER},
+      description = #{description,jdbcType=VARCHAR},
+      next_contact_time = #{nextContactTime,jdbcType=TIMESTAMP},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      create_by = #{createBy,jdbcType=INTEGER},
+      edit_time = #{editTime,jdbcType=TIMESTAMP},
+      edit_by = #{editBy,jdbcType=INTEGER}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>
